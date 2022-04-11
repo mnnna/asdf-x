@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+install_xcmd(){
+  local version=$1
+  local install_path=$2
+
+  local url_download="$(get_download_url $version)"
+
+  if [ "Distribution file not found. Exiting" == "${url_download}" ]; then
+    echo "The version specified ($version) was not found. Exiting"
+    exit 1
+  fi
+
+  if [ "$TMPDIR" = "" ]; then
+    local tmp_download_dir=$(mktemp -d)
+  else
+    local tmp_download_dir=$TMPDIR
+  fi
+
+  local source_path=$(get_download_file_path $version $tmp_download_dir)
+  download_source_file_url "$url_download" $source_path
+
+  (
+    tar zxf $source_path -C $install_path --strip-components=1 || exit 1
+  )
+}
+
+get_download_url() {
+  local version=$1
+
+  case "$version" in
+    dev)
+      echo "https://github.com/x-cmd/x-cmd/archive/refs/tags/v0.0.0-20220407.tar.gz"  ;;
+    *)
+      local download_page="https://github.com/x-cmd/x-cmd/archive/refs/tags/v0.0.0-20220325.tar.gz"
+      local download_url="$(curl -s $download_page)"
+      echo $download_url
+      ;;
+  esac
+}
+
+get_download_file_path() {
+  local version=$1
+  local tmp_download_dir=$2
+
+  local pkg_name="x-${version}.tar.gz"
+
+  echo "$tmp_download_dir/$pkg_name"
+}
+
+download_source_file_url() {
+  local url=$1
+  local download_path=$2
+
+  curl -Lo $download_path -C - $url
+}
+
+download_source_file() {
+  local version=$1
+  local download_path=$2
+  local download_url=$(get_download_url $install_type $version)
+
+  curl -Lo $download_path -C - $download_url
+}
+
+install_xcmd $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
